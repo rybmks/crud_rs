@@ -1,7 +1,6 @@
-use crate::{data_base::DataBase, handle_users_getting, User};
+use crate::{handle_adding_to_db, handle_users_getting, User};
 use actix_cors::Cors;
 use actix_web::{web, App, HttpResponse, HttpServer, Responder};
-use std::vec;
 
 #[actix_web::main]
 pub async fn start_web_server() -> std::io::Result<()> {
@@ -25,21 +24,12 @@ pub async fn start_web_server() -> std::io::Result<()> {
     .await
 }
 async fn add_to_db(data: web::Json<User>) -> impl Responder {
-    let mut db = DataBase::new("postgres://postgres:123456@localhost:5432/rust_postgre_test")
-        .await
-        .unwrap();
+    let res = handle_adding_to_db(data).await;
 
-    let query = sqlx::query(
-        r#"INSERT INTO "user" (name, age, date)
-        VALUES ($1, $2, $3)"#,
-    )
-    .bind(&data.name)
-    .bind(data.age)
-    .bind("seichas");
-
-    db.execute_queries(vec![query]).await.unwrap();
-
-    HttpResponse::Ok().json(data)
+    match res {
+        Ok(()) => HttpResponse::Ok(),
+        Err(_) => HttpResponse::InternalServerError(),
+    }
 }
 async fn getting_string() -> impl Responder {
     let users = handle_users_getting().await;
